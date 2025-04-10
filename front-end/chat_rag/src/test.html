@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring AI 流式聊天演示</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .chat-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .chat-header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 1.2em;
+        }
+        #chat-output {
+            height: 400px;
+            padding: 20px;
+            overflow-y: auto;
+            border-bottom: 1px solid #eee;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+        .input-area {
+            display: flex;
+            padding: 15px;
+        }
+        #message-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        #send-button {
+            margin-left: 10px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #send-button:hover {
+            background-color: #45a049;
+        }
+        #send-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .typing-indicator {
+            color: #888;
+            font-style: italic;
+            padding: 0 20px 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div class="chat-container">
+    <div class="chat-header">
+        Spring AI 流式聊天演示
+    </div>
+    <div id="chat-output"></div>
+    <div class="typing-indicator" id="typing-indicator">
+        AI正在思考...
+    </div>
+    <div class="input-area">
+        <input type="text" id="message-input" placeholder="输入你的消息..." autocomplete="off">
+        <button id="send-button" onclick="sendMessage()">发送</button>
+    </div>
+</div>
+
+<script>
+    // 全局变量存储当前的事件源，以便可以关闭它
+    let currentEventSource = null;
+
+    // 当用户按下回车键时发送消息
+    document.getElementById('message-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    function sendMessage() {
+        const inputElement = document.getElementById('message-input');
+        const message = inputElement.value.trim();
+        const buttonElement = document.getElementById('send-button');
+        const outputElement = document.getElementById('chat-output');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        if (!message) return;
+
+        // 禁用按钮和输入框
+        buttonElement.disabled = true;
+        inputElement.disabled = true;
+
+        // 显示用户消息
+        outputElement.innerHTML += `<div style="color: #333; margin-bottom: 10px;"><strong>你:</strong> ${message}</div>`;
+        outputElement.scrollTop = outputElement.scrollHeight;
+
+        // 显示AI正在输入指示器
+        typingIndicator.style.display = 'block';
+
+        // 清空输入框
+        inputElement.value = '';
+
+        // 如果已有事件源，先关闭它
+        if (currentEventSource) {
+            currentEventSource.close();
+        }
+
+        // 创建新的EventSource连接
+        currentEventSource = new EventSource(`http://localhost:8081/chat/ollama/generate_stream?message=${encodeURIComponent(message)}`);
+
+        let aiResponse = '';
+        currentEventSource.onmessage = (event) => {
+            // 隐藏正在输入指示器
+            typingIndicator.style.display = 'none';
+
+            // 追加新内容到AI响应
+            aiResponse += event.data;
+
+            // 更新显示（使用最后一个div来显示AI的响应）
+            const aiDivs = outputElement.querySelectorAll('.ai-response');
+            let aiDiv;
+
+            if (aiDivs.length > 0) {
+                aiDiv = aiDivs[aiDivs.length - 1];
+            } else {
+                aiDiv = document.createElement('div');
+                aiDiv.className = 'ai-response';
+                aiDiv.style.color = '#4CAF50';
+                aiDiv.style.marginBottom = '10px';
+                aiDiv.innerHTML = '<strong>AI:</strong> ';
+                outputElement.appendChild(aiDiv);
+            }
+
+            // 更新内容，保留strong标签
+            aiDiv.innerHTML = `<strong>AI:</strong> ${aiResponse}`;
+            outputElement.scrollTop = outputElement.scrollHeight;
+        };
+
+        currentEventSource.onerror = (error) => {
+            console.error("EventSource failed:", error);
+            currentEventSource.close();
+            typingIndicator.style.display = 'none';
+
+            // 重新启用按钮和输入框
+            buttonElement.disabled = false;
+            inputElement.disabled = false;
+
+            // 如果没有任何响应，显示错误消息
+            if (!aiResponse) {
+                outputElement.innerHTML += `<div style="color: red; margin-bottom: 10px;"><strong>AI:</strong> 抱歉，发生了错误，请重试。</div>`;
+                outputElement.scrollTop = outputElement.scrollHeight;
+            }
+        };
+    }
+
+    // 页面卸载时关闭所有事件源
+    window.addEventListener('beforeunload', function() {
+        if (currentEventSource) {
+            currentEventSource.close();
+        }
+    });
+</script>
+</body>
+</html>
