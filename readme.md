@@ -1,4 +1,4 @@
-* # ✨ open-chat-rag ✨
+ # ✨ open-chat-rag ✨
 
   [![Java](https://img.shields.io/badge/Backend-Java%252017-007396?logo=openjdk)](https://openjdk.org/) [![Vue](https://img.shields.io/badge/Frontend-Vue%25203-4FC08D?logo=vuedotjs)](https://vuejs.org/) 
 
@@ -40,9 +40,9 @@
 
   - Vector database integration
 
-    ​					<img src="C:\Users\han\AppData\Roaming\Typora\typora-user-images\image-20250410103303762.png" alt="image-20250410103303762" style="zoom: 80%;" /> 	
+    ​					<img src="assert\postman.png" alt="postman.png" style="zoom: 80%;" /> 	
 
-    <img src="D:\Project\Java\open-chat-rag\assert\db.png" alt="db" />
+    <img src="assert\db.png" alt="db" />
 
     
 
